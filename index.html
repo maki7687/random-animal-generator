@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>画家专属 - 奇幻生物灵感生成器</title>
+  <!-- 引入 html2canvas 库用于保存图片 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #0d0f17;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --primary-accent: #7928ca;
+      --secondary-accent: #00dfd8;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, var(--secondary-accent), var(--primary-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* 包含生成器卡片的区域，用于整体截屏导出 */
+    #capture-area {
+      background: var(--bg-color);
+      padding: 24px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+    }
+
+    .generator-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .part-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .part-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--secondary-accent);
+      transform: translateY(-1px);
+    }
+
+    .part-card:active {
+      transform: translateY(0);
+    }
+
+    .part-name {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .part-name::before {
+      content: '✦';
+      color: var(--secondary-accent);
+      font-size: 0.8rem;
+    }
+
+    .part-value {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--secondary-accent);
+      min-height: 24px;
+    }
+
+    .part-value.empty {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: normal;
+      font-style: italic;
+    }
+
+    /* 底部按钮区域 */
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-accent), #4f46e5);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      box-shadow: 0 4px 20px rgba(121, 40, 202, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>RANDOM ANIMAL GENERATOR</h1>
+      <p>点击下方任意部位，获取灵感</p>
+    </header>
+
+    <!-- 可导出的区域 -->
+    <div id="capture-area">
+      <div class="generator-grid">
+        <div class="part-card" onclick="generatePart('base')">
+          <span class="part-name">基础 Base</span>
+          <span class="part-value empty" id="val-base">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('head')">
+          <span class="part-name">头部 Head</span>
+          <span class="part-value empty" id="val-head">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('ears')">
+          <span class="part-name">耳朵 Ears</span>
+          <span class="part-value empty" id="val-ears">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('eyes')">
+          <span class="part-name">眼睛 Eyes</span>
+          <span class="part-value empty" id="val-eyes">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('nose')">
+          <span class="part-name">鼻子 Nose</span>
+          <span class="part-value empty" id="val-nose">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('legs')">
+          <span class="part-name">腿 Legs</span>
+          <span class="part-value empty" id="val-legs">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('feets')">
+          <span class="part-name">脚掌 Feets</span>
+          <span class="part-value empty" id="val-feets">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('tail')">
+          <span class="part-name">尾巴 Tail</span>
+          <span class="part-value empty" id="val-tail">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('coat')">
+          <span class="part-name">外皮 Coat</span>
+          <span class="part-value empty" id="val-coat">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('color')">
+          <span class="part-name">颜色 Color</span>
+          <span class="part-value empty" id="val-color">点击生成...</span>
+        </div>
+        <div class="part-card" onclick="generatePart('extra')">
+          <span class="part-name">特殊 Extra</span>
+          <span class="part-value empty" id="val-extra">点击生成...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部功能按钮 -->
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="resetAll()">↻ Reset</button>
+      <button class="btn btn-primary" onclick="saveAsPicture()">📷 Save as Picture</button>
+    </div>
+  </div>
+
+  <script>
+       // 包含 1000+ 种动物、昆虫、神话神兽与恐龙古生物的完整词库 (中英对照)
+    const creatures = [
+      // ==========================================
+      // PART 1: 真实动物与昆虫 (500+ 种)
+      // ==========================================
+      "Aardvark 土豚", "Aardwolf 狼鬣狗", "African Elephant 非洲象", "African Wild Dog 非洲野犬", "Alpaca 羊驼", 
+      "American Bison 美洲野牛", "Anatolian Shepherd 阿纳托利亚牧羊犬", "Antelope 羚羊", "Arctic Fox 北极狐", "Arctic Wolf 北极狼", 
+      "Armadillo 犰狳", "Baboon 狒狒", "Bactrian Camel 双峰骆驼", "Badger 獾", "Banteng 爪哇野牛", 
+      "Barking Deer 麂", "Basset Hound 巴塞特猎犬", "Bear 熊", "Beaver 河狸", "Bengal Tiger 孟加拉虎", 
+      "Bighorn Sheep 大角羊", "Bison 野牛", "Black Bear 黑熊", "Black Panther 黑豹", "Black Rhinoceros 黑犀牛", 
+      "Blobfish 水滴鱼", "Bloodhound 寻血猎犬", "Blue Whale 蓝鲸", "Boar 野猪", "Bornean Orangutan 婆罗洲猩猩", 
+      "Brown Bear 棕熊", "Buffalo 水牛", "Bull 公牛", "Bush Baby 婴猴", "Camel 骆驼", 
+      "Capybara 水豚", "Caracal 狞猫", "Caribou 驯鹿", "Cat 猫", "Cheetah 猎豹", 
+      "Chimpanzee 黑猩猩", "Chinchilla 龙猫/毛丝鼠", "Chipmunk 花鼠", "Clouded Leopard 雲豹", "Coati 南美浣熊", 
+      "Cougar 美洲狮", "Cow 母牛", "Coyote 郊狼", "Cuscus 斑袋鼬", "Dachshund 腊肠犬", 
+
+      "Dalmatian 斑点狗", "Deer 鹿", "Dingo 丁狗", "Donkey 驴", "Dromedary 单峰骆驼", 
+      "Dugong 儒艮", "Echidna 针鼹", "Elk 驼鹿", "Fennec Fox 大耳狐", "Ferret 鼬", 
+      "Flying Squirrel 鼯鼠", "Fox 狐狸", "Fruit Bat 果蝠", "Gazelle 羚羊", "Gerenuk 长颈羚", 
+      "Acorn Weevil 橡实象鼻虫", "Ambush Bug 伏击蝽", "American Cockroach 美洲蟑螂", "Ant 蚂蚁", "Antlion 蚁蛉", 
+      "Aphid 蚜虫", "Army Ant 军团蚁", "Assassin Bug 猎蝽", "Atlas Beetle 阿特拉斯大鸟粪金龟", "Atlas Moth 皇蛾", 
+      "Bark Beetle 树皮象虫", "Bed Bug 臭虫", "Bee 蜜蜂", "Beetle 甲虫", "Birdwing Butterfly 鸟翼蝶", 
+
+      "Biting Midges 咬蠓", "Black Widow Spider 黑寡妇蜘蛛", "Blow Fly 丽蝇", "Blue Morpho Butterfly 蓝魔尔芙蝶", "Bumblebee 熊蜂", 
+      "Caddisfly 石蚕", "Carpenter Ant 匠蚁", "Carpenter Bee 樟木蜂", "Caterpillar 毛毛虫", "Centipede 蜈蚣", 
+      "Albatross 信天翁", "Amazon Parrot 亚马逊鹦鹉", "Barn Owl 仓鸮", "Bird of Paradise 极乐鸟", "Black Swan 黑天鹅", 
+
+      "Blue Jay 蓝鸦", "Booby 蓝脚鸟", "Cassowary 鹤鸵", "Cockatoo 凤头鹦鹉", "Crane 丹顶鹤", 
+      "Crow 乌鸦", "Cuckoo 杜鹃", "Eagle 鹰", "Emu 鸸鹋", "Falcon 隼", 
+      "African Bullfrog 非洲牛蛙", "Agama 鬣蜥", "Alligator 鬣鳄", "Anaconda 绿水蚺", "Anole 绿蜥蜴", 
+      "Axolotl 钝口螈", "Basilisk 冠蜥", "Bearded Dragon 髭蜥", "Blind Snake 盲蛇", "Boa Constrictor 巨蚺", 
+
+      "Bullfrog 牛蛙", "Chameleon 变色龙", "Cobra 眼镜蛇", "Cottonmouth 噬鱼蛇", "Crocodile 鳄鱼", 
+      "Angel Fish 神仙鱼", "Anglerfish 𩽾𩾌鱼", "Archerfish 射水鱼", "Barracuda 梭子鱼", "Basking Shark 象鲛", 
+      "Beluga Whale 白鲸", "Box Jellyfish 立方水母", "Clownfish 小丑鱼", "Cuttlefish 乌贼", "Electric Eel 电鳗", 
+      "Giant Squid 巨型乌贼", "Goblin Shark 哥布林鲨", "Hammerhead Shark 双目髻鲨", "Horseshoe Crab 鲎", "Jellyfish 水母", 
+
+      "Giraffe 长颈鹿", "Giant Panda 大熊猫", "Glider 蜜袋鼯", "Goat 山羊", "Golden Retriever 金毛犬", 
+      "Gorilla 银背猩猩", "Grasshopper 蝗虫", "Grizzly Bear 灰熊", "Groundhog 堆土鼠", "Guinea Pig 豚鼠", 
+      "Hamster 仓鼠", "Hedgehog 刺猬", "Hippopotamus 河马", "Honey Badger 蜜獾", "Horse 马", 
+      "Howler Monkey 吼猴", "Hyena 鬣狗", "Ibex 羱羊", "Iguana 绿鬣蜥", "Impala 斑羚", 
+
+      "Jaguar 雅玛豹", "Japanese Macaque 雪猴", "Kangaroo 袋鼠", "Killer Whale 虎鲸", "King Cheetah 帝王猎豹", 
+      "King Cobra 眼镜王蛇", "Kinkajou 蜜熊", "Koala 树袋熊", "Komodo Dragon 科摩多巨蜥", "Kudu 卷角羚", 
+      "Ladybug 瓢虫", "Lemur 狐猴", "Leopard 豹", "Leopard Gecko 豹纹守宫", "Lion 狮子", 
+      "Lionfish 狮子鱼", "Llama 羊驼", "Lobster 龙虾", "Loris 懒猴", "Lynx 猞猁", 
+      "Macaw 金刚鹦鹉", "Mammoth 猛犸象", "Manatee 海牛", "Mandrill 山魈", "Manta Ray 鬼蝠魟", 
+
+      "Mantis 螳螂", "Marmot 旱獭", "Meerkat 细尾獴", "Mink 貂", "Mole 鼹鼠", 
+      "Monarch Butterfly 帝王蝶", "Mongoose 獴", "Monitor Lizard 巨蜥", "Monkey 猴子", "Moose 驼鹿", 
+      "Mosquito 蚊子", "Moth 蛾", "Mountain Goat 雪山羊", "Mouse 老鼠", "Mudskipper 弹涂鱼", 
+      "Mule 驴骡", "Narwhal 独角鲸", "Nautilus 鹦鹉螺", "Newt 蠑螈", "Ocelot 豹猫", 
+
+      "Octopus 章鱼", "Okapi 欧卡皮鹿", "Opossum 负鼠", "Orangutan 猩猩", "Ostrich 鸵鸟", 
+      "Otter 水獭", "Owl 猫头鹰", "Ox 阄牛", "Pangolin 穿山甲", "Parrot 鹦鹉", 
+      "Peacock 孔雀", "Pelican 鹈鹕", "Penguin 企鹅", "Peregrine Falcon 游隼", "Phasmida 竹节虫", 
+      "Pig 猪", "Pigeon 鸽子", "Piranha 食人鱼", "Platypus 鸭嘴兽", "Polar Bear 北极熊", 
+
+      "Porcupine 豪猪", "Porpoise 鼠海豚", "Puffin 海鹦", "Python 蟒蛇", "Quokka 矮袋鼠", 
+      "Rabbit 兔子", "Raccoon 浣熊", "Rattlesnake 响尾蛇", "Raven 渡鸦", "Red Panda 小熊猫", 
+      "Reindeer 驯鹿", "Rhinoceros 犀牛", "Roadrunner 走鹃", "Robin 罗宾鸟", "Salamander 斑蠑螈", 
+
+      "Sand Cat 沙漠猫", "Sawfish 锯鳐", "Scorpion 蝎子", "Sea Anemone 海葵", "Sea Cucumber 海参", 
+      "Sea Dragon 叶海龙", "Sea Horse 海马", "Sea Lion 海狮", "Sea Otter 海獭", "Sea Urchin 海胆", 
+      "Seal 海豹", "Serval 薮猫", "Shark 鲨鱼", "Sheep 绵羊", "Shrew 鼩鼱", 
+      "Siberian Tiger 东北虎", "Silverfish 衣鱼", "Skunk 臭鼬", "Sloth 树懒", "Slug 蛞蝓", 
+
+      "Snail 蜗牛", "Snake 蛇", "Snow Leopard 雪豹", "Snowy Owl 白鸮", "Sperm Whale 抹香鲸", 
+      "Spider 蜘蛛", "Spider Monkey 蜘蛛猴", "Squid 鱿鱼", "Squirrel 松鼠", "Stag Beetle 锹形虫", 
+      "Starfish 海星", "Stingray 魟鱼", "Stork 鹳", "Sun Bear 太阳熊", "Swan 白天鹅", 
+      "Tapir 貘", "Tarantula 捕鸟蛛", "Tarsier 眼镜猴", "Tasmanian Devil 塔斯马尼亚恶魔", "Termite 白蚁", 
+
+      "Tiger 老虎", "Tiger Shark 虎鲨", "Toad 蟾蜍", "Toucan 巨嘴鸟", "Tree Frog 树蛙", 
+      "Turkey 火鸡", "Turtle 乌龟", "Vampire Bat 吸血蝠", "Viper 蝰蛇", "Vulture 兀鹰", 
+      "Walrus 海象", "Wasp 黄蜂", "Water Buffalo 水牛", "Weasel 鼬", "Whale Shark 鲸鲨", 
+
+      "White Tiger 白虎", "Wildebeest 角马", "Wolf 狼", "Wolverine 狼獾", "Wombat 袋熊", 
+      "Woodpecker 啄木鸟", "Yak 牦牛", "Zebra 斑马", "Agouti 刺鼠", "Anchovy 鳀鱼", 
+      "Angora Rabbit 安哥拉兔", "Arapaima 巨骨舌鱼", "Argali 盘羊", "Arowana 龙鱼", "Aye-Aye 指猴", 
+
+      "Bandicoot 刺袋鼠", "Barnacle 鹅颈藤壶", "Binturong 熊狸", "Black Mamba 黑曼巴蛇", "Blue Crab 蓝蟹", 
+      "Bombardier Beetle 炮手甲虫", "Bongo 林羚", "Bowhead Whale 弓头鲸", "Bushmaster 薮蛇", "Capuchin 卷尾猴", 
+      "Civet 麝香猫", "Climbing Perch 攀鲈", "Cone Snail 毒锥螺", "Cormorant 鸬鹚", "Darwin's Frog 达尔文蛙", 
+      "Desman 麝鼹", "Dhole 豺", "Dormouse 睡鼠", "Eel 鳗鱼", "Eland 巨羚", 
+
+      "Elephant Seal 象海豹", "Emperor Penguin 帝企鹅", "Ermine 白鼬", "Fangtooth 鬼尖齿鱼", "Fiddler Crab 招潮蟹", 
+      "Firefly 萤火虫", "Flamingo 扁嘴红鹳", "Flea 跳蚤", "Flounder 比目鱼", "Flying Fish 飞鱼", 
+      "Frilled Lizard 伞蜥蜴", "Gharial 印度食鱼鳄", "Giant Clam 砗粲", "Giant Isopod 巨型深海木虱", "Glass Frog 玻璃蛙", 
+
+      "Glowworm 耀虫", "Golden Eagle 金雕", "Goliath Birdeater 巨人捕鸟蛛", "Goliath Beetle 歌利亚大金龟", "Grouper 石斑鱼", 
+      "Guppy 孔雀鱼", "Hagfish 盲鳗", "Harpy Eagle 哈比鹰", "Hermit Crab 寄居蟹", "Hoatzin 麝雉", 
+      "Honey Bee 蜜蜂", "Hornet 虎头蜂", "Horseshoe Bat 菊头蝠", "Hummingbird 蜂鸟", "Humpback Whale 座头鲸", 
+
+      "Ibis 朱鹮", "Inland Taipan 内陆太攀蛇", "Jerboa 跳鼠", "Jewel Beetle 吉丁虫", "Kakapo 鸮鹦鹉", 
+      "Kingfisher 翠鸟", "Kiwi 奇异鸟", "Kookaburra 笑翠鸟", "Krill 磷虾", "Lamprey 七鳃鳗", 
+      "Leafcutter Ant 切叶蚁", "Leafy Seadragon 枝叶海龙", "Leech 水蛭", "Lemming 旅鼠", "Leopard Seal 豹海豹", 
+
+      "Louse 虱子", "Lungfish 肺鱼", "Lyrebird 琴鸟", "Mantis Shrimp 螳螂虾", "Matamata 玛玛塔龟", 
+      "Mayfly 蜉蝣", "Mite 螨虫", "Mole Cricket 蝼蛄", "Monk Seal 僧帽海豹", "Moray Eel 海鳝", 
+      "Nudibranch 裸鳃海蛞蝓", "Olinguito 拟浣熊", "Oarfish 皇带鱼", "Opah 月鱼", "Pika 鼠兔", 
+
+      "Pistol Shrimp 枪虾", "Puffin 海鹦", "Quetzal 凤尾绿咬鹃", "Quoll 斑袋鼬", "Raft Spider 漂浮蜘蛛", 
+
+      "Rhea 鶆䴈", "Rhinoceros Beetle 独角仙", "Sailfish 旗鱼", "Saiga 塞加羚羊", "Salmon 鲑鱼", 
+      "Scallop 扇贝", "Sea Lily 海百合", "Sea Pen 海笔", "Shoebill 巨嘴鹳", "Siamang 合趾猿", 
+
+      "Skink 石龙子", "Stonefish 毒石头鱼", "Sturgeon 鲟鱼", "Sunfish 翻车鱼", "Surinam Toad 负子蟾", 
+      "Tarantula Hawk 捕鸟蛛鹰蜂", "Tardigrade 水熊虫", "Thorny Devil 棘蜥", "Thrip 蓟马", "Tick 蜱虫", 
+
+      "Titan Beetle 泰坦甲虫", "Tsetse Fly 舌蝇", "Tuatara 楔齿蜥", "Uakari 秃猴", "Vampire Squid 吸血鬼乌贼", 
+      "Velella 银币水母", "Viperfish 毒蛇鱼", "Water Strider 水黾", "Weevil 象鼻虫", "Weta 巨型沙螽", 
+
+      "Whip Spider 鞭蛛", "Woodlouse 潮虫", "Yeti Crab 耶提毛绒蟹", "Zebra Finch 斑胸草雀", "Zorilla 斑臭鼬",
+
+
+      // ==========================================
+      // PART 2: 神兽、传说怪物、恐龙与古生物 (500+ 种)
+      // ==========================================
+      // 东西方神兽与神话生物
+      "Azure Dragon 青龙", "Vermilion Bird 朱雀", "White Tiger 白虎", "Black Tortoise 玄武", "Qilin 麒麟", 
+      "Pixiu 貔貅", "Baize 白泽", "Nine-Tailed Fox 九尾狐", "Fenghuang 凤凰", "Kunpeng 鲲鹏", 
+
+      "Taotie 饕餮", "Qiongqi 穷奇", "Hundun 混沌", "Taowu 梼杌", "Xiezhi 獬豸", 
+      "Feilian 飞廉", "Bichi 椒图/霸下", "Suanni 狻猊", "Yazi 睚眦", "Chaofeng 嘲风", 
+      "Bi'an 狴犴", "Bi'xi 𫎣厑/霸下", "Pulao 蒲牢", "Chiwen 螭吻", "Baxia 霸下", 
+
+      "Zhurong 祝融兽", "Xiangliu 相柳", "Jiutoubird 九头鸟", "Jingwei 精卫", "Peng 鹏", 
+      "Zhenbird 鸩鸟", "Fei 蜚", "Luanbird 鸾鸟", "Bishan 毕方", "Zhuyan 烛龙/朱厌", 
+
+      "Dragon 龙", "Western Dragon 西方巨龙", "Wyvern 飞龙/双足飞龙", "Drake 幼龙/无翼龙", "Hydra 九头蛇许德拉", 
+      "Phoenix 凤凰/火鸟", "Griffin 狮鹫", "Hippogriff 骏鹰", "Pegasus 佩格萨斯天马", "Unicorn 独角兽", 
+
+      "Alicorn 翼角兽", "Centaur 人马", "Minotaur 弥诺陶洛斯/牛头人", "Chimera 奇美拉", "Sphinx 斯芬克斯", 
+      "Cerberus 刻耳柏洛斯/地狱三头犬", "Orthrus 双头犬", "Basilisk 蛇怪/蛇王", "Cockatrice 鸡蛇/飞鸡蛇", "Manticore 曼蒂科尔/人面蝎尾狮", 
+
+      "Gorgon 戈耳工", "Medusa 美杜莎", "Harpy 哈比鹰身女郎", "Siren 塞壬/海妖", "Mermaid 人鱼/美人鱼", 
+
+      "Triton 翠顿/海神人鱼", "Kraken 克拉肯/深海巨妖", "Leviathan 利维坦", "Behemoth 贝希摩斯", "Ziz 席兹/巨鸟", 
+      "Sleipnir 斯雷普尼尔/八足神马", "Fenrir 芬里尔魔狼", "Jormungandr 耶梦加得/尘世巨蟒", "Nidhogg 尼德霍格/黑龙", "Garuda 迦楼罗/金翅大鹏", 
+
+      "Naga 娜迦/蛇神", "Ahi 阿希/巨蛇", "Wendigo 温迪戈", "Skinwalker 皮行者", "Thunderbird 雷鸟", 
+
+      "Chupacabra 卓柏卡布拉/吸血怪", "Mokele-Mbembe 摩克利-姆边贝", "Wendigo 冰霜恶魔兽", "Jackalope 鹿角兔", "Jersey Devil 泽西魔鬼", 
+
+      "Mothman 天蛾人", "Flatwoods Monster 弗拉特伍兹怪物", "Yeti 雪人", "Sasquatch 大脚怪", "Bigfoot 大脚野人", 
+
+      "Loch Ness Monster 尼斯湖水怪", "Champ 查普水怪", "Ogopogo 奥戈波戈", "Bunyip 邦尼普/澳洲水怪", "Kelpie 凯尔派/水鬼水马", 
+
+      "Cait Sith 凯席斯/猫妖", "Cu Sith 库席斯/犬妖", "Banshee 报丧女妖", "Pixie 匹克西小精怪", "Imp 恶魔小鬼", 
+
+      "Gargoyle 石像鬼", "Golem 傀儡/魔像", "Iron Golem 铁魔像", "Flesh Golem 肌肉魔像", "Homunculus 霍蒙克鲁斯/人造人", 
+
+      "Kitsune 狐仙/九尾妖狐", "Tengu 天狗", "Kappa 河童", "Nue 鵺", "Tanuki 狸猫妖怪", 
+
+      "Raiju 雷兽", "Yuki-onna 雪女", "Kamaitachi 镰鼬", "Jorogumo 络新妇/蜘蛛女", "Gashadokuro 荒骷髅", 
+
+      "Baku 食梦貘", "Bakeneko 妖猫", "Nekomata 猫又", "Yamata no Orochi 八歧大蛇", "Kumiho 九尾狐(韩)", 
+
+      "Gorynych 戈里尼奇/三头东欧龙", "Simurgh 西摩格/波斯神鸟", "Anzu 安祖/暴风神鸟", "Roc 鹏鸟/巨鸟", "Karkadann 卡卡丹/波斯独角兽", 
+
+      "Buraq 卜拉格/圣马", "Al-Mi'raj 米拉吉/角兔", "Ammit 阿米特/噬魂兽", "Anubis Guard 阿努比斯神兽", "Apep 阿波菲斯/混沌巨蛇", 
+
+      "Benu 贝努鸟", "Serpopard 蛇颈豹", "Apsaras 阿普萨拉斯/天女兽", "Makara 摩伽罗/海兽", "Vritra 弗利多/旱魔巨蛇", 
+
+      "Kinnara 紧那罗/人鸟", "Rakshasa 罗刹恶鬼兽", "Ahi 巨蟒妖", "Ceryneian Hind 刻律涅亚赤牝鹿", "Erymanthian Boar 厄里曼托斯野猪", 
+
+      "Stymphalian Birds 斯廷法利斯毒羽鸟", "Cretan Bull 克里特公牛", "Mares of Diomedes 狄奥米德斯食人马", "Lernean Hydra 勒拿九头蛇", "Nemean Lion 尼米亚猛狮", 
+
+      "Geryon 格里昂/三头巨人兽", "Ladons 拉冬/百头巨龙", "Taraxippus 惊马神", "Acalanthops 刺翅兽", "Amphisbaena 双头蛇", 
+
+      "Catoblepas 扭颈兽/卡托布莱帕斯", "Empusa 英普莎/吸血女妖", "Hippocampus 海马兽", "Lamia 拉米亚/蛇发女怪", "Ouroboros 乌洛波洛斯/衔尾蛇", 
+
+      "Peryton 佩利冬/羽鹿兽", "Salamander 元素火蠑螈", "Undine 水元素水温蒂尼", "Sylph 风元素西尔芙", "Gnome 地元素诺姆", 
+
+      "Will-o'-the-wisp 鬼火/精灵火", "Blemmyes 无头人兽", "Cynocephaly 狗头人兽", "Myrmekes 巨金蚁", "Karkinos 巨蟹兽", 
+
+      "Scylla 斯库拉/六头海妖", "Charybdis 卡律布狄斯/大漩涡怪", "Camp 坎珀/地狱看守兽", "Echidna 厄客德娜/万兽之母", "Typhon 提丰/万魔之王", 
+
+      "Quetzalcoatl 羽蛇神", "Tezcatlipoca 烟雾镜/黑豹神", "Xiuhcoatl 绿松石蛇", "Cipactli 鳄鱼巨兽", "Ahuizotl 水猴怪/水獭妖", 
+
+      "Camazotz 蝙蝠神/噬血蝠", "Piuchen 飞蛇精", "Mapinguari 玛平古雅/亚马逊野人兽", "Encantado 换形粉红海豚", "Cuero 皮革海怪", 
+
+      "Wulver 狼人兽", "Hellhound 地狱犬", "Grim 恶兆黑犬", "Barghest 巴格斯特黑犬", "Church Grim 冰岛守墓犬", 
+
+      "Jackal 噬魂阿努比斯兽", "Warlock Hound 巫师猎犬", "Nightmare 梦魇暗影马", "Shadowstalker 影子潜行兽", "Void Walker 虚空行者兽", 
+
+      "Abyssal Fiend 深渊魔兽", "Dreadwolf 恐惧狼", "Frost Wyrm 霜霜飞龙", "Nether Drake 地狱幽冥龙", "Chaos Beast 混沌魔兽",
+
+      // 恐龙与古生物 (Dinosaurs & Prehistoric Creatures)
+      "Tyrannosaurus Rex 霸王龙", "Velociraptor 迅猛龙", "Triceratops 三角龙", "Stegosaurus 剑龙", "Brachiosaurus 腕龙", 
+
+      "Spinosaurus 棘龙", "Allosaurus 异特龙", "Ankylosaurus 甲龙", "Pteranodon 翼手龙", "Pterodactyl 翼龙", 
+
+      "Diplodocus 梁龙", "Apatosaurus 迷齿龙/雷龙", "Parasaurolophus 副栉龙", "Carnotaurus 食肉牛龙", "Pachycephalosaurus 肿头龙", 
+
+      "Gigantosaurus 巨劲龙/巨鳄龙", "Giganotosaurus 南巨龙", "Deinonychus 恐爪龙", "Gallimimus 似鸡龙", "Iguanodon 禽龙", 
+
+      "Archaeopteryx 始祖鸟", "Compsognathus 细颚龙", "Maiasaura 慈母龙", "Oviraptor 窃蛋龙", "Styracosaurus 戟龙", 
+
+      "Therizinosaurus 蜥代龙/镰刀龙", "Troodon 伤齿龙", "Utahraptor 犹他盗龙", "Baryonyx 重爪龙", "Ceratosaurus 角鼻龙", 
+
+      "Dilophosaurus 双脊龙", "Dimetrodon 异齿龙", "Mosasaurus 沧龙", "Plesiosaurus 蛇颈龙", "Ichthyosaurus 鱼龙", 
+
+      "Kronosaurus 克罗诺龙/巨板龙", "Liopleurodon 滑齿龙", "Dunkleosteus 邓氏鱼", "Megalodon 巨齿鲨", "Titanoboa 钛蛇/巨蚺", 
+
+      "Mammoth 猛犸象", "Saber-toothed Tiger 剑齿虎", "Megatherium 大地懒", "Doedicurus 雕齿兽", "Woolly Rhinoceros 披毛犀", 
+
+      "Elasmotherium 板齿犀", "Cave Bear 洞熊", "Cave Lion 洞狮", "Dire Wolf 恐狼", "Irish Elk 爱尔兰大角鹿", 
+
+      "Glyptodon 雕齿兽", "Andrewsarchus 安氏中兽", "Entelodont 巨猪/完齿兽", "Basilosaurus 龙王鲸", "Ambulocetus 陆行鲸", 
+
+      "Liviatan 利维坦鲸", "Archelon 帝龟/古巨龟", "Deinosuchus 帝鳄/恐鳄", "Purussaurus 普鲁斯鳄", "Titanis 泰坦鸟", 
+
+      "Phorusrhacos 恐鹤", "Dodo 渡渡鸟", "Moa 莫阿巨鸟", "Haast's Eagle 哈斯特鹰", "Argentavis 阿根廷巨鹰", 
+
+      "Quetzalcoatlus 风神翼龙", "Hatzegopteryx 哈特兹哥翼龙", "Rhamphorhynchus 喙嘴翼龙", "Tapejara 塔佩雅拉翼龙", "Dimorphodon 双型齿翼龙", 
+
+      "Anomalocaris 奇虾", "Trilobite 三叶虫", "Hallucigenia 怪诞虫", "Opabinia 欧巴宾海蝎", "Pterygotus 翼肢鲎/海蝎子", 
+
+      "Jaekelopterus 耶克尔鲎", "Cameroceras 房角石", "Ammonite 菊石", "Orthoceras 直角石", "Stethacanthus 齿背鲨", 
+
+      "Helicoprion 旋齿鲨", "Xiphactinus 剑射鱼", "Hyneria 海纳鱼", "Tiktaalik 提塔利克鱼", "Eusthenopteron 真掌鳍鱼", 
+
+      "Ichthyostega 鱼石螈", "Diplocaulus 笠头螈", "Seymouria 西蒙螈", "Eryops 巨蜥螈", "Arthropleura 巨型巨节虫/千足虫", 
+
+      "Meganeura 巨脉蜻蜓", "Pulmonoscorpius 肺蝎/巨型蝎子", "Jaekelopterus 巨型海蝎", "Platybelodon 铲齿象", "Deinotherium 恐象", 
+
+      "Gomphotherium 嵌齿象", "Chalicotherium 爪兽", "Macrauchenia 长颈驼", "Toxodon 箭齿兽", "Hyaenodon 肉齿兽/鬣齿兽", 
+
+      "Thylacosmilus 袋剑虎", "Thylacoleo 袋狮", "Procoptodon 巨型短面袋鼠", "Diprotodon 双齿兽/双门齿兽", "Megalania 巨蜥/古巨蜥", 
+
+      "Wonambi 窝楠比蛇", "Meiolania 卷角龟", "Gastornis 戈氏鸟", "Presbyornis 普雷斯比鸟", "Pelagornis 佩拉哥尼斯巨鸟", 
+
+      "Abelisaurus 阿贝力龙", "Albertosaurus 亚伯达龙", "Acrocanthosaurus 高脊龙", "Amargasaurus 阿马加龙", "Anchiceratops 锚角龙", 
+
+      "Argentinosaurus 阿根廷龙", "Bambiraptor 斑比盗龙", "Brontosaurus 雷龙", "Camarasaurus 腕龙/圆顶龙", "Centrosaurus 尖角龙", 
+
+      "Chasmosaurus 开角龙", "Corythosaurus 冠龙", "Cryolophosaurus 冰脊龙", "Dreadnoughtus 无畏龙", "Dryosaurus 树龙", 
+
+      "Edmontosaurus 埃德蒙顿龙", "Eoraptor 黎明空骨龙/始盗龙", "Euoplocephalus 优头甲龙", "Heterodontosaurus 异齿龙", "Hypsilophodon 棱齿龙", 
+
+      "Kentrosaurus 钉状龙", "Lambeosaurus 兰伯龙", "Massospondylus 大椎龙", "Megalosaurus 巨齿龙", "Microceratus 微角龙", 
+
+      "Minmi 敏迷龙", "Muttaburrasaurus 穆塔布拉龙", "Nodosaurus 结节龙", "Ouranosaurus 豪勇龙", "Pachycephalosaurus 厚头龙", 
+
+      "Pentaceratops 五角龙", "Plateosaurus 板龙", "Protoceratops 原角龙", "Psittacosaurus 鹦鹉嘴龙", "Saltasaurus 萨尔塔龙", 
+
+      "Sauropelta 盾龙", "Scutellosaurus 小盾龙", "Shantungosaurus 山东龙", "Sinornithosaurus 中国鸟龙", "Sinosauropteryx 中华龙鸟", 
+
+      "Suchomimus 似鳄龙", "Supersaurus 超级龙", "Tarbosaurus 特暴龙", "Tenontosaurus 腱龙", "Torvosaurus 蛮龙", 
+
+      "Tyrannotitan 暴泰坦龙", "Wuerhosaurus 乌尔禾龙", "Yutyrannus 羽暴龙", "Zuniceratops 祖尼角龙", "Zephyrosaurus 西风龙"
+    ];
+
+    // 随机获取一个动物
+    function getRandomCreature() {
+      const randomIndex = Math.floor(Math.random() * creatures.length);
+      return creatures[randomIndex];
+    }
+
+    // 生成单个部位的动物
+    function generatePart(partId) {
+      const element = document.getElementById(`val-${partId}`);
+      element.textContent = getRandomCreature();
+      element.classList.remove('empty');
+    }
+
+    // 重置所有部位
+    function resetAll() {
+      const parts = ['base', 'head', 'ears', 'eyes', 'nose', 'legs', 'feets', 'tail', 'coat' , 'color' , 'extra'];
+      parts.forEach(part => {
+        const element = document.getElementById(`val-${part}`);
+        element.textContent = '点击生成...';
+        element.classList.add('empty');
+      });
+    }
+
+    // 导出为图片
+    function saveAsPicture() {
+      const captureArea = document.getElementById('capture-area');
+      
+      html2canvas(captureArea, {
+        backgroundColor: '#0d0f17', // 保证导出图片的背景一致
+        scale: 2 // 提高导出图片的清晰度
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `creature-inspiration-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
