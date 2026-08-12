@@ -1,3 +1,4 @@
+# 点击开始 https://maki7687.github.io/random-animal-generator/
 # 🎨 Creature Inspiration Generator | 奇幻生物灵感生成器
 
 An interactive web-based inspiration generator for artists, designers, and creature conceptualizers. Easily create unique creature concepts by randomly pairing 9 distinct body parts with over 1,000+ real animals, insects, mythical beasts, and prehistoric dinosaurs.
